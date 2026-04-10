@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 function run(command, args) {
@@ -99,6 +99,22 @@ const apkPath = apkCandidates.find((path) => existsSync(path));
 if (!apkPath) {
   fail(
     `Debug APK not found in expected paths:\n- ${apkCandidates.join('\n- ')}\nRun "npm run build:debug:apk" first.`,
+  );
+}
+
+const requiredJniEntries = [
+  'lib/arm64-v8a/libsprint_sync_protocol_jni.so',
+];
+
+const apkBytes = readFileSync(apkPath);
+const missingJniEntries = requiredJniEntries.filter(
+  (entry) => !apkBytes.includes(Buffer.from(entry, 'utf8')),
+);
+
+if (missingJniEntries.length > 0) {
+  fail(
+    `Debug APK is missing required JNI libraries:\n- ${missingJniEntries.join('\n- ')}\n` +
+      'Run "pnpm run build:debug:apk" (or "pnpm run rebuild:debug:devices") to rebuild with JNI.',
   );
 }
 

@@ -7,14 +7,19 @@
     "desktop-tauri"
   ],
   "scripts": {
-    "build:debug:apk": "cmd.exe /c \"cd /d android && gradlew.bat :app:assembleDebug\"",
-    "build:release:apk": "cmd.exe /c \"cd /d android && gradlew.bat :app:assembleRelease\"",
+    "build:android:jni": "node scripts/build-android-jni.mjs",
+    "build:debug:apk": "pnpm run build:android:jni && cmd.exe /c \"cd /d android && gradlew.bat :app:assembleDebug\"",
+    "build:release:apk": "pnpm run build:android:jni && cmd.exe /c \"cd /d android && gradlew.bat :app:assembleRelease\"",
 
 
     "install:release:devices": "node scripts/install-release-apk.mjs",
     "rebuild:release:devices": "pnpm run build:release:apk && node scripts/install-release-apk.mjs",
     "install:release:devices:adb": "node scripts/install-release-devices-adb.mjs",
     "rebuild:release:devices:adb": "pnpm run build:release:apk && pnpm run install:release:devices:adb",
+    "install:debug:devices": "node scripts/install-debug-apk.mjs",
+    "rebuild:debug:devices": "pnpm run build:debug:apk && pnpm run install:debug:devices",
+    "install:debug:devices:adb": "node scripts/install-debug-devices-adb.mjs",
+    "rebuild:debug:devices:adb": "pnpm run build:debug:apk && pnpm run install:debug:devices:adb",
     "install:debug:devices:build": "pnpm run rebuild:debug:devices",
     "android:build:install:start": "pnpm run rebuild:debug:devices:adb",
     "windows:install": "pnpm install --recursive",
@@ -35,6 +40,7 @@
     "windows:package:exe": "pnpm run windows:package:desktop",
     "windows:package:start:exe": "pnpm run windows:package:desktop",
     "run:android-and-exe": "pnpm run rebuild:debug:devices:adb && pnpm run windows:package:start:exe",
+    "jcodemunch:watch": "uvx --python 3.12 --with \"jcodemunch-mcp[watch]\" jcodemunch-mcp watch \"%cd%\"",
     "release:android": "node scripts/release-android.mjs",
     "release:windows": "node scripts/release-windows.mjs"
   },

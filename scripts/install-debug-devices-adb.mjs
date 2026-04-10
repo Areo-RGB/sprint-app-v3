@@ -95,6 +95,22 @@ if (!apkPath) {
   );
 }
 
+const requiredJniEntries = [
+  'lib/arm64-v8a/libsprint_sync_protocol_jni.so',
+];
+
+const apkBytes = readFileSync(apkPath);
+const missingJniEntries = requiredJniEntries.filter(
+  (entry) => !apkBytes.includes(Buffer.from(entry, 'utf8')),
+);
+
+if (missingJniEntries.length > 0) {
+  fail(
+    `Debug APK is missing required JNI libraries:\n- ${missingJniEntries.join('\n- ')}\n` +
+      'Run "pnpm run build:debug:apk" (or "pnpm run rebuild:debug:devices:adb") to rebuild with JNI.',
+  );
+}
+
 function toAdbFilePath(filePath) {
   if (!adbCommand.toLowerCase().endsWith('.exe')) {
     return filePath;

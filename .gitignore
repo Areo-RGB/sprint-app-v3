@@ -47,6 +47,7 @@ app.*.map.json
 /apps/android/app/release
 /apps/android/build/
 /apps/android/app/build/
+/android/app/src/main/jniLibs/
 # Root Gradle build output (apps/android module has its own .gitignore)
 /build/
 /.gradle/
@@ -84,3 +85,5 @@ apps/android/.codanna
 /scip-java
 /.fastembed_cache/models--Qdrant--all-MiniLM-L6-v2-onnx
 /target
+/ide-index-mcp
+/jetbrains-debugger
