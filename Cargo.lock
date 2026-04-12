@@ -3723,7 +3723,7 @@ dependencies = [
 
 [[package]]
 name = "sprint-sync-windows-desktop-tauri"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "chrono",

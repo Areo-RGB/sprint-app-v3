@@ -303,15 +303,27 @@ export function saveMockResults(
   snapshot: Snapshot | null,
 ): SaveResultsResponse {
   const source = snapshot ?? createMockSnapshot();
-  const exportedAtIso = new Date().toISOString();
-  const fileName = `result_${Date.now()}.json`;
-  const resultName = typeof request.name === "string" && request.name.trim().length > 0 ? request.name : fileName;
+  const exportedAt = new Date();
+  const exportedAtIso = exportedAt.toISOString();
+  const timestampSegment = exportedAtIso.replace(/[:.]/g, "-");
+  const fileName = `${timestampSegment}.json`;
+  const normalizedAthleteName =
+    typeof request.athleteName === "string" && request.athleteName.trim().length > 0
+      ? request.athleteName.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "")
+      : "";
+  const resultName =
+    normalizedAthleteName.length > 0
+      ? `${normalizedAthleteName}_${exportedAt
+          .toLocaleDateString("en-GB")
+          .split("/")
+          .join("_")}`
+      : (source.session?.runId ?? "run");
 
   const payload: SavedResultsFilePayload = {
     type: "windows_results_export",
     resultName,
-    athleteName: request.athleteName ?? null,
-    notes: request.notes ?? null,
+    athleteName: normalizedAthleteName || null,
+    notes: null,
     namingFormat: "athlete_dd_MM_yyyy",
     exportedAtIso,
     exportedAtMs: Date.now(),
@@ -333,7 +345,7 @@ export function saveMockResults(
     fileName,
     resultName,
     athleteName: payload.athleteName,
-    notes: payload.notes,
+    notes: null,
     savedAtIso: exportedAtIso,
   };
 }

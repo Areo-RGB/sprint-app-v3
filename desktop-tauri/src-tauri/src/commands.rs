@@ -49,6 +49,12 @@ fn format_date_for_result_name(timestamp_iso: &str) -> String {
     .unwrap_or_else(|_| chrono::Utc::now().format("%d_%m_%Y").to_string())
 }
 
+fn format_timestamp_for_result_file_name(timestamp_iso: &str) -> String {
+  chrono::DateTime::parse_from_rfc3339(timestamp_iso)
+    .map(|timestamp| timestamp.format("%Y-%m-%d_%H-%M-%S_%3fZ").to_string())
+    .unwrap_or_else(|_| chrono::Utc::now().format("%Y-%m-%d_%H-%M-%S_%3fZ").to_string())
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GenericOkResponse {
@@ -164,9 +170,7 @@ pub struct ResyncDeviceRequest {
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveResultsRequest {
-  pub name: Option<String>,
   pub athlete_name: Option<String>,
-  pub notes: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
@@ -569,19 +573,6 @@ pub async fn save_results(
 
   let export_timestamp_iso = chrono::Utc::now().to_rfc3339();
   let athlete_name = normalize_athlete_name_for_result(payload.athlete_name.as_deref());
-  let notes = payload
-    .notes
-    .as_deref()
-    .map(str::trim)
-    .filter(|value| !value.is_empty())
-    .map(|value| value.chars().take(240).collect::<String>());
-
-  let requested_name = payload
-    .name
-    .as_deref()
-    .map(str::trim)
-    .filter(|value| !value.is_empty())
-    .unwrap_or_default();
 
   let athlete_date_name = athlete_name
     .as_deref()
@@ -589,9 +580,7 @@ pub async fn save_results(
     .unwrap_or_default();
 
   let run_segment = results::sanitize_file_name_segment(
-    if !requested_name.is_empty() {
-      requested_name
-    } else if !athlete_date_name.is_empty() {
+    if !athlete_date_name.is_empty() {
       athlete_date_name.as_str()
     } else if let Some(run_id) = snapshot.session.run_id.as_deref() {
       run_id
@@ -600,14 +589,13 @@ pub async fn save_results(
     },
   );
 
-  let timestamp_segment = export_timestamp_iso.replace([':', '.'], "-");
-  let file_name = format!("{}_{}.json", run_segment, timestamp_segment);
+  let file_name = format!("{}.json", format_timestamp_for_result_file_name(&export_timestamp_iso));
 
   let export_payload = crate::state::SavedResultsFilePayload {
     r#type: "windows_results_export".to_string(),
     result_name: run_segment.clone(),
     athlete_name: athlete_name.clone(),
-    notes: notes.clone(),
+    notes: None,
     naming_format: "athlete_dd_MM_yyyy".to_string(),
     exported_at_iso: export_timestamp_iso.clone(),
     exported_at_ms: chrono::Utc::now().timestamp_millis(),
@@ -642,7 +630,7 @@ pub async fn save_results(
     file_name,
     result_name: run_segment,
     athlete_name,
-    notes,
+    notes: None,
     saved_at_iso: export_timestamp_iso,
   })
 }

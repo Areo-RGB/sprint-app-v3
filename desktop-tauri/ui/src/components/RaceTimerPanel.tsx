@@ -118,7 +118,7 @@ export default function RaceTimerPanel({
                     variant="secondary"
                   />
                   <ActionButton
-                    label="Save Results JSON"
+                    label="Save Results"
                     onClick={saveResultsJson}
                     busy={busyAction === "/api/control/save-results"}
                     disabled={!canSaveResults}

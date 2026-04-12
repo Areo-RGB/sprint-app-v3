@@ -36,12 +36,10 @@ import type {
 import {
   buildMonitoringPointRows,
   computeProgressiveRoleOptions,
-  formatDateForResultName,
   formatDurationNanos,
   formatIsoTime,
   formatMeters,
   formatRaceClockMs,
-  normalizeAthleteNameDraft,
   normalizeRoleOptions,
   roleOrderIndex,
   stageLabel,
@@ -55,6 +53,19 @@ import SystemDetails from "./components/SystemDetails";
 const AUTO_APPLY_DELAY_MS = 350;
 const DEV_UI_MOCK_MODE = import.meta.env.VITE_USE_DEV_MOCK === "true";
 const USE_MOCK_API = DEV_UI_MOCK_MODE || !isTauriRuntime();
+const SPRINT_20_METERS_PRESET_ACTION_KEY = "preset:sprint-20-meters";
+const SPRINT_20_METERS_PRESET_BY_DEVICE_NAME: Record<string, { role: RoleLabel; distanceMeters: number }> = {
+  "eml-l29": { role: "Start", distanceMeters: 0 },
+  "pixel 7": { role: "Stop", distanceMeters: 20 },
+  cph2399: { role: "Split 2", distanceMeters: 10 },
+  "2410crp4cg": { role: "Split 1", distanceMeters: 5 },
+};
+
+function normalizePresetDeviceName(deviceName: string | null | undefined): string {
+  return String(deviceName ?? "")
+    .trim()
+    .toLowerCase();
+}
 
 export default function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(() => (USE_MOCK_API ? createMockSnapshot() : null));
@@ -291,6 +302,91 @@ export default function App() {
     postControl("/api/control/resync-device", { targetId }, `device-resync:${targetId}`);
   }
 
+  async function applySprint20MetersPreset() {
+    if (monitoringActive) {
+      return;
+    }
+
+    const matchedAssignments = clients
+      .map((client) => {
+        const targetId = client.roleTarget ?? client.endpointId ?? "";
+        const deviceName = client.deviceName ?? client.senderDeviceName ?? "";
+        const preset = SPRINT_20_METERS_PRESET_BY_DEVICE_NAME[normalizePresetDeviceName(deviceName)];
+        if (!targetId || !preset) {
+          return null;
+        }
+        return {
+          targetId,
+          role: preset.role,
+          distanceMeters: preset.distanceMeters,
+        };
+      })
+      .filter(
+        (
+          assignment,
+        ): assignment is {
+          targetId: string;
+          role: RoleLabel;
+          distanceMeters: number;
+        } => assignment !== null,
+      );
+
+    if (matchedAssignments.length === 0) {
+      setLastError("Sprint 20 meters preset could not find any matching connected devices.");
+      return;
+    }
+
+    for (const assignment of matchedAssignments) {
+      clearScheduledApply(sensitivityApplyTimeoutsRef, assignment.targetId);
+      clearScheduledApply(distanceApplyTimeoutsRef, assignment.targetId);
+    }
+
+    setBusyAction(SPRINT_20_METERS_PRESET_ACTION_KEY);
+    try {
+      if (USE_MOCK_API) {
+        setSnapshot((previous) => {
+          let nextSnapshot = previous;
+          for (const assignment of matchedAssignments) {
+            nextSnapshot = applyMockControl(nextSnapshot, "/api/control/assign-role", {
+              targetId: assignment.targetId,
+              role: assignment.role,
+            });
+            nextSnapshot = applyMockControl(nextSnapshot, "/api/control/device-config", {
+              targetId: assignment.targetId,
+              distanceMeters: assignment.distanceMeters,
+            });
+          }
+          return nextSnapshot;
+        });
+      } else {
+        for (const assignment of matchedAssignments) {
+          await tauriAssignRole({
+            targetId: assignment.targetId,
+            role: assignment.role,
+          });
+          await tauriUpdateDeviceConfig({
+            targetId: assignment.targetId,
+            distanceMeters: assignment.distanceMeters,
+          });
+        }
+        await fetchState();
+      }
+
+      setDistanceDraftByTarget((previous) => {
+        const nextDrafts = { ...previous };
+        for (const assignment of matchedAssignments) {
+          nextDrafts[assignment.targetId] = String(assignment.distanceMeters);
+        }
+        return nextDrafts;
+      });
+      setLastError("");
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : "Sprint 20 meters preset failed");
+    } finally {
+      setBusyAction("");
+    }
+  }
+
   function updateSensitivityDraft(targetId: string, rawValue: string, fallbackSensitivity: number) {
     setSensitivityDraftByTarget((previous) => ({
       ...previous,
@@ -366,27 +462,12 @@ export default function App() {
   }
 
   async function saveResultsJson() {
-    const athletePrompt = window.prompt("Athlete Name (saved name format: athlete_dd_MM_yyyy)", "");
-    if (athletePrompt === null) return;
-
-    const suggestedAthleteSegment = normalizeAthleteNameDraft(athletePrompt);
-    const suggestedResultName =
-      suggestedAthleteSegment.length > 0
-        ? `${suggestedAthleteSegment}_${formatDateForResultName(new Date())}`
-        : (snapshot?.session?.runId ?? "");
-
-    const namePrompt = window.prompt("Save Result Name", suggestedResultName);
-    if (namePrompt === null) return;
-
-    const notesPrompt = window.prompt("Notes (optional)", "");
-    if (notesPrompt === null) return;
+    const athletePrompt = window.prompt("Athlete Name (optional)", "");
 
     const response = await postControl(
       "/api/control/save-results",
       {
-        name: namePrompt,
-        athleteName: athletePrompt,
-        notes: notesPrompt,
+        athleteName: athletePrompt ?? "",
       },
       "/api/control/save-results",
     );
@@ -797,6 +878,20 @@ export default function App() {
                     ? "Roles are locked while monitoring. Camera, sensitivity, and distance settings remain editable."
                     : "Assign roles and configure camera, sensitivity, and physical distance per device."}
                 </p>
+                {!monitoringActive && clients.length > 0 ? (
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      className="border-[2px] border-black bg-[#FFEA00] px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition hover:bg-[#FFD600] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                      disabled={busyAction.length > 0}
+                      onClick={() => {
+                        void applySprint20MetersPreset();
+                      }}
+                    >
+                      Sprint 20 meters
+                    </button>
+                  </div>
+                ) : null}
                 {clients.length === 0 ? (
                   <p className="text-sm font-bold uppercase text-gray-500">No peers connected yet.</p>
                 ) : (

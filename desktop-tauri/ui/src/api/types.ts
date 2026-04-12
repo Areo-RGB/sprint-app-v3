@@ -185,9 +185,7 @@ export interface MonitoringPointRow {
 }
 
 export interface SaveResultsRequest {
-  name?: string;
   athleteName?: string;
-  notes?: string;
 }
 
 export interface AssignRoleRequest {
