@@ -16,6 +16,7 @@ type RaceTimerPanelProps = {
   postControl: (path: ControlPath, body?: unknown, actionKey?: string) => Promise<unknown>;
   canStartMonitoring: boolean;
   monitoringActive: boolean;
+  resetRun: () => void;
   saveResultsJson: () => void;
   canSaveResults: boolean;
   monitoringPointRows: MonitoringPointRow[];
@@ -34,6 +35,7 @@ export default function RaceTimerPanel({
   postControl,
   canStartMonitoring,
   monitoringActive,
+  resetRun,
   saveResultsJson,
   canSaveResults,
   monitoringPointRows,
@@ -111,9 +113,7 @@ export default function RaceTimerPanel({
                   />
                   <ActionButton
                     label="Reset Run"
-                    onClick={() => {
-                      void postControl("/api/control/reset-run");
-                    }}
+                    onClick={resetRun}
                     busy={busyAction === "/api/control/reset-run"}
                     variant="secondary"
                   />

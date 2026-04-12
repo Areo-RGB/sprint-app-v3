@@ -478,6 +478,11 @@ export default function App() {
     }
   }
 
+  function resetRun() {
+    setRunHistory([]);
+    void postControl("/api/control/reset-run");
+  }
+
   useEffect(() => {
     let disposed = false;
     let unlisten: (() => void) | null = null;
@@ -807,6 +812,7 @@ export default function App() {
                 postControl={postControl}
                 canStartMonitoring={canStartMonitoring}
                 monitoringActive={monitoringActive}
+                resetRun={resetRun}
                 saveResultsJson={saveResultsJson}
                 canSaveResults={canSaveResults}
                 monitoringPointRows={monitoringPointRows}

@@ -130,6 +130,7 @@ class RaceSessionController(
         private const val MIN_BURST_SPACING_MS = 15_000L
         private const val DRIFT_JUMP_THRESHOLD_NANOS = 25_000_000L
         private const val RECENT_HOST_OFFSET_SAMPLE_LIMIT = 6
+        private const val IDENTITY_HANDSHAKE_REFRESH_MS = 5_000L
         private const val DEFAULT_LOCAL_DEVICE_ID = "local-device"
         private const val DEFAULT_LOCAL_DEVICE_NAME = "This Device"
     }
@@ -193,6 +194,7 @@ class RaceSessionController(
     private var lastRateLimitedEventElapsedNanos: Long? = null
     private var activeClockSyncEndpointId: String? = null
     private var activeClockSyncBurstToken: Long = 0L
+    private val lastIdentityHandshakeByEndpoint = mutableMapOf<String, Long>()
 
     private var localDeviceId = DEFAULT_LOCAL_DEVICE_ID
 
@@ -1420,6 +1422,7 @@ class RaceSessionController(
         }
         if (!event.connected) {
             clearIdentityMappingForEndpoint(event.endpointId)
+            lastIdentityHandshakeByEndpoint.remove(event.endpointId)
             lastPublishedTelemetryFingerprint = null
         }
         val nextDevices = if (event.connected) {
@@ -2071,6 +2074,7 @@ class RaceSessionController(
             return
         }
         val hostEndpointId = _uiState.value.connectedEndpoints.firstOrNull() ?: return
+        maybeRefreshIdentityHandshake(hostEndpointId, force = force)
         val latencyMs = _clockState.value.hostClockRoundTripNanos?.let { (it.toDouble() / 1_000_000.0).roundToInt() }
         val message = SessionDeviceTelemetryMessage(
             stableDeviceId = localDeviceId,
@@ -2104,6 +2108,19 @@ class RaceSessionController(
             }
         }
         lastPublishedTelemetryFingerprint = fingerprint
+    }
+
+    private fun maybeRefreshIdentityHandshake(endpointId: String, force: Boolean) {
+        val nowElapsedMs = nowElapsedNanos() / 1_000_000L
+        val lastSentElapsedMs = lastIdentityHandshakeByEndpoint[endpointId]
+        val shouldSend = force ||
+            lastSentElapsedMs == null ||
+            nowElapsedMs - lastSentElapsedMs >= IDENTITY_HANDSHAKE_REFRESH_MS
+        if (!shouldSend) {
+            return
+        }
+        sendIdentityHandshake(endpointId)
+        lastIdentityHandshakeByEndpoint[endpointId] = nowElapsedMs
     }
 
     private fun mapStableIdentityToEndpoint(stableDeviceId: String, endpointId: String) {
