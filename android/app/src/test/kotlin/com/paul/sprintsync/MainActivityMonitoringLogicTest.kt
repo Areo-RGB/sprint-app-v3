@@ -1,12 +1,12 @@
 package com.paul.sprintsync
 
-import com.paul.sprintsync.core.models.SavedRunResult
-import com.paul.sprintsync.core.services.SessionConnectionEvent
-import com.paul.sprintsync.features.race_session.SessionDeviceRole
-import com.paul.sprintsync.features.race_session.SessionStage
-import com.paul.sprintsync.features.race_session.SessionOperatingMode
-import com.paul.sprintsync.features.race_session.SessionSplitMark
-import com.paul.sprintsync.features.race_session.SessionNetworkRole
+import com.paul.sprintsync.feature.race.data.SavedRunResult
+import com.paul.sprintsync.feature.connectivity.domain.SessionConnectionEvent
+import com.paul.sprintsync.feature.race.domain.SessionDeviceRole
+import com.paul.sprintsync.feature.race.domain.SessionStage
+import com.paul.sprintsync.feature.race.domain.SessionOperatingMode
+import com.paul.sprintsync.feature.race.domain.SessionSplitMark
+import com.paul.sprintsync.feature.race.domain.SessionNetworkRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -280,8 +280,8 @@ class MainActivityMonitoringLogicTest {
         val history = buildSplitHistoryForTimeline(
             startedSensorNanos = 1_000_000_000L,
             splitMarks = listOf(
-                SessionSplitMark(role = com.paul.sprintsync.features.race_session.SessionDeviceRole.SPLIT1, hostSensorNanos = 11_000_000_000L),
-                SessionSplitMark(role = com.paul.sprintsync.features.race_session.SessionDeviceRole.SPLIT2, hostSensorNanos = 21_000_000_000L),
+                SessionSplitMark(role = com.paul.sprintsync.feature.race.domain.SessionDeviceRole.SPLIT1, hostSensorNanos = 11_000_000_000L),
+                SessionSplitMark(role = com.paul.sprintsync.feature.race.domain.SessionDeviceRole.SPLIT2, hostSensorNanos = 21_000_000_000L),
             ),
         )
 

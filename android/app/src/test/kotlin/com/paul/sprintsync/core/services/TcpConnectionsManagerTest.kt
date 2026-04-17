@@ -1,8 +1,9 @@
-package com.paul.sprintsync.core.services
+package com.paul.sprintsync.feature.connectivity.domain
 
 import android.os.Looper
-import com.paul.sprintsync.features.race_session.SessionClockSyncBinaryCodec
-import com.paul.sprintsync.features.race_session.SessionClockSyncBinaryRequest
+import com.paul.sprintsync.core.network.TcpConnectionsManager
+import com.paul.sprintsync.feature.race.domain.SessionClockSyncBinaryCodec
+import com.paul.sprintsync.feature.race.domain.SessionClockSyncBinaryRequest
 import java.net.ServerSocket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit

@@ -59,21 +59,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.paul.sprintsync.features.race_session.SessionCameraFacing
-import com.paul.sprintsync.core.models.SavedRunCheckpointResult
-import com.paul.sprintsync.core.models.SavedRunResult
-import com.paul.sprintsync.features.race_session.SessionDevice
-import com.paul.sprintsync.features.race_session.SessionDeviceRole
-import com.paul.sprintsync.features.race_session.SessionAnchorState
-import com.paul.sprintsync.features.race_session.SessionNetworkRole
-import com.paul.sprintsync.features.race_session.SessionOperatingMode
-import com.paul.sprintsync.features.race_session.SessionStage
-import com.paul.sprintsync.features.race_session.sessionCameraFacingLabel
-import com.paul.sprintsync.features.race_session.sessionDeviceRoleLabel
-import com.paul.sprintsync.sensor_native.SensorNativePreviewViewFactory
-import com.paul.sprintsync.ui.components.*
-import com.paul.sprintsync.ui.theme.*
-import com.paul.sprintsync.ui.theme.InterExtraBoldTabularTypography
+import com.paul.sprintsync.feature.race.domain.SessionCameraFacing
+import com.paul.sprintsync.feature.race.data.SavedRunCheckpointResult
+import com.paul.sprintsync.feature.race.data.SavedRunResult
+import com.paul.sprintsync.feature.race.domain.SessionDevice
+import com.paul.sprintsync.feature.race.domain.SessionDeviceRole
+import com.paul.sprintsync.feature.race.domain.SessionAnchorState
+import com.paul.sprintsync.feature.race.domain.SessionNetworkRole
+import com.paul.sprintsync.feature.race.domain.SessionOperatingMode
+import com.paul.sprintsync.feature.race.domain.SessionStage
+import com.paul.sprintsync.feature.race.domain.sessionCameraFacingLabel
+import com.paul.sprintsync.feature.race.domain.sessionDeviceRoleLabel
+import com.paul.sprintsync.feature.motion.data.native.SensorNativePreviewViewFactory
+import com.paul.sprintsync.feature.race.ui.components.*
+import com.paul.sprintsync.core.theme.*
+import com.paul.sprintsync.core.theme.InterExtraBoldTabularTypography
 import kotlin.math.roundToInt
 
 data class SprintSyncUiState(

@@ -1,8 +1,8 @@
-package com.paul.sprintsync.core.repositories
+package com.paul.sprintsync.core.database
 
 import android.content.Context
-import com.paul.sprintsync.core.models.SavedRunCheckpointResult
-import com.paul.sprintsync.core.models.SavedRunResult
+import com.paul.sprintsync.feature.race.data.SavedRunCheckpointResult
+import com.paul.sprintsync.feature.race.data.SavedRunResult
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test

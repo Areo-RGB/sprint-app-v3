@@ -1,0 +1,1 @@
+activate the project and read Serena’s instructions at session start.

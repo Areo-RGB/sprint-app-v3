@@ -1,4 +1,4 @@
-package com.paul.sprintsync.sensor_native
+package com.paul.sprintsync.feature.motion.data.native
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

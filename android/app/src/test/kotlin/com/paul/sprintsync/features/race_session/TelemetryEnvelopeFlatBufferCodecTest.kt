@@ -1,4 +1,4 @@
-package com.paul.sprintsync.features.race_session
+package com.paul.sprintsync.feature.race.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

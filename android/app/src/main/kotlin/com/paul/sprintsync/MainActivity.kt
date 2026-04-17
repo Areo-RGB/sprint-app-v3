@@ -19,35 +19,35 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
-import com.paul.sprintsync.core.models.SavedRunResult
-import com.paul.sprintsync.core.models.SavedRunCheckpointResult
-import com.paul.sprintsync.core.repositories.LocalRepository
-import com.paul.sprintsync.core.services.AppUpdateChecker
-import com.paul.sprintsync.core.services.SessionConnectionEvent
-import com.paul.sprintsync.core.services.SessionConnectionStrategy
-import com.paul.sprintsync.core.services.SessionConnectionsManager
-import com.paul.sprintsync.core.services.TcpConnectionsManager
-import com.paul.sprintsync.features.motion_detection.MotionCameraFacing
-import com.paul.sprintsync.features.motion_detection.MotionDetectionController
-import com.paul.sprintsync.features.race_session.RaceSessionController
-import com.paul.sprintsync.features.race_session.RaceSessionUiState
-import com.paul.sprintsync.features.race_session.SessionCameraFacing
-import com.paul.sprintsync.features.race_session.SessionClockLockReason
-import com.paul.sprintsync.features.race_session.SessionDeviceRole
-import com.paul.sprintsync.features.race_session.SessionLapResultMessage
-import com.paul.sprintsync.features.race_session.SessionNetworkRole
-import com.paul.sprintsync.features.race_session.SessionOperatingMode
-import com.paul.sprintsync.features.race_session.SessionAnchorState
-import com.paul.sprintsync.features.race_session.SessionSplitMark
-import com.paul.sprintsync.features.race_session.SessionStage
-import com.paul.sprintsync.features.race_session.TelemetryEnvelopeFlatBufferCodec
-import com.paul.sprintsync.features.race_session.explicitSplitRoles
-import com.paul.sprintsync.features.race_session.isSplitCheckpointRole
-import com.paul.sprintsync.features.race_session.splitIndexForRole
-import com.paul.sprintsync.features.race_session.sessionDeviceRoleLabel
-import com.paul.sprintsync.sensor_native.SensorNativeController
-import com.paul.sprintsync.sensor_native.SensorNativeEvent
-import com.paul.sprintsync.sensor_native.SensorNativePreviewViewFactory
+import com.paul.sprintsync.feature.race.data.SavedRunResult
+import com.paul.sprintsync.feature.race.data.SavedRunCheckpointResult
+import com.paul.sprintsync.core.database.LocalRepository
+import com.paul.sprintsync.core.common.AppUpdateChecker
+import com.paul.sprintsync.feature.connectivity.domain.SessionConnectionEvent
+import com.paul.sprintsync.feature.connectivity.domain.SessionConnectionStrategy
+import com.paul.sprintsync.feature.connectivity.domain.SessionConnectionsManager
+import com.paul.sprintsync.core.network.TcpConnectionsManager
+import com.paul.sprintsync.feature.motion.domain.MotionCameraFacing
+import com.paul.sprintsync.feature.motion.domain.MotionDetectionController
+import com.paul.sprintsync.feature.race.domain.RaceSessionController
+import com.paul.sprintsync.feature.race.domain.RaceSessionUiState
+import com.paul.sprintsync.feature.race.domain.SessionCameraFacing
+import com.paul.sprintsync.feature.race.domain.SessionClockLockReason
+import com.paul.sprintsync.feature.race.domain.SessionDeviceRole
+import com.paul.sprintsync.feature.race.domain.SessionLapResultMessage
+import com.paul.sprintsync.feature.race.domain.SessionNetworkRole
+import com.paul.sprintsync.feature.race.domain.SessionOperatingMode
+import com.paul.sprintsync.feature.race.domain.SessionAnchorState
+import com.paul.sprintsync.feature.race.domain.SessionSplitMark
+import com.paul.sprintsync.feature.race.domain.SessionStage
+import com.paul.sprintsync.feature.race.domain.TelemetryEnvelopeFlatBufferCodec
+import com.paul.sprintsync.feature.race.domain.explicitSplitRoles
+import com.paul.sprintsync.feature.race.domain.isSplitCheckpointRole
+import com.paul.sprintsync.feature.race.domain.splitIndexForRole
+import com.paul.sprintsync.feature.race.domain.sessionDeviceRoleLabel
+import com.paul.sprintsync.feature.motion.data.native.SensorNativeController
+import com.paul.sprintsync.feature.motion.data.native.SensorNativeEvent
+import com.paul.sprintsync.feature.motion.data.native.SensorNativePreviewViewFactory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
         }
 
         setContent {
-            com.paul.sprintsync.ui.theme.SprintSyncTheme {
+            com.paul.sprintsync.core.theme.SprintSyncTheme {
                 SprintSyncApp(
                     uiState = uiState.value,
                     previewViewFactory = previewViewFactory,

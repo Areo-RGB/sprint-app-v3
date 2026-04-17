@@ -3,8 +3,8 @@ package com.paul.sprintsync
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.paul.sprintsync.features.race_session.SessionOperatingMode
-import com.paul.sprintsync.features.race_session.SessionStage
+import com.paul.sprintsync.feature.race.domain.SessionOperatingMode
+import com.paul.sprintsync.feature.race.domain.SessionStage
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals

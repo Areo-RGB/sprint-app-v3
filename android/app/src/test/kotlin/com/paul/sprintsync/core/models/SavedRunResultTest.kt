@@ -1,4 +1,4 @@
-package com.paul.sprintsync.core.models
+package com.paul.sprintsync.feature.race.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

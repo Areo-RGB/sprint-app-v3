@@ -1,6 +1,6 @@
-package com.paul.sprintsync.features.race_session
+package com.paul.sprintsync.feature.race.domain
 
-import com.paul.sprintsync.core.services.SessionConnectionEvent
+import com.paul.sprintsync.feature.connectivity.domain.SessionConnectionEvent
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
