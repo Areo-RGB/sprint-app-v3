@@ -73,8 +73,12 @@ class MotionDetectionController(
         updateConfig(_uiState.value.config.copy(roiCenterX = value))
     }
 
-    fun updateRoiWidth(value: Double) {
-        updateConfig(_uiState.value.config.copy(roiWidth = value))
+    fun updateRoiCenterY(value: Double) {
+        updateConfig(_uiState.value.config.copy(roiCenterY = value))
+    }
+
+    fun updateRoiHeight(value: Double) {
+        updateConfig(_uiState.value.config.copy(roiHeight = value))
     }
 
     fun updateCooldown(value: Int) {
@@ -147,7 +151,8 @@ class MotionDetectionController(
         return NativeMonitoringConfig(
             threshold = threshold,
             roiCenterX = roiCenterX,
-            roiWidth = roiWidth,
+            roiCenterY = roiCenterY,
+            roiHeight = roiHeight,
             cooldownMs = cooldownMs,
             processEveryNFrames = processEveryNFrames,
             cameraFacing = nativeFacing,

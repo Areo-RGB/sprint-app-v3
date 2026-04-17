@@ -15,7 +15,8 @@ enum class NativeCameraFpsMode(val wireName: String) {
 data class NativeMonitoringConfig(
     val threshold: Double,
     val roiCenterX: Double,
-    val roiWidth: Double,
+    val roiCenterY: Double,
+    val roiHeight: Double,
     val cooldownMs: Int,
     val processEveryNFrames: Int,
     val cameraFacing: NativeCameraFacing,
@@ -25,7 +26,8 @@ data class NativeMonitoringConfig(
             return NativeMonitoringConfig(
                 threshold = 0.006,
                 roiCenterX = 0.5,
-                roiWidth = 0.03,
+                roiCenterY = 0.5,
+                roiHeight = 0.03,
                 cooldownMs = 900,
                 processEveryNFrames = 1,
                 cameraFacing = NativeCameraFacing.REAR,
@@ -48,9 +50,14 @@ data class NativeMonitoringConfig(
                     0.20,
                     0.80,
                 ),
-                roiWidth = clampDouble(
-                    (raw["roiWidth"] as? Number)?.toDouble() ?: defaults.roiWidth,
-                    0.03,
+                roiCenterY = clampDouble(
+                    (raw["roiCenterY"] as? Number)?.toDouble() ?: defaults.roiCenterY,
+                    0.20,
+                    0.80,
+                ),
+                roiHeight = clampDouble(
+                    ((raw["roiHeight"] ?: raw["roiWidth"]) as? Number)?.toDouble() ?: defaults.roiHeight,
+                    0.01,
                     0.40,
                 ),
                 cooldownMs = clampInt(

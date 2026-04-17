@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
     private lateinit var previewViewFactory: SensorNativePreviewViewFactory
     private lateinit var localRepository: LocalRepository
     private val uiState = mutableStateOf(SprintSyncUiState())
+    private val debugTelemetryState = mutableStateOf(SprintSyncDebugTelemetryState())
     private var pendingPermissionAction: (() -> Unit)? = null
     private var timerRefreshJob: Job? = null
     private var isAppResumed: Boolean = false
@@ -189,6 +190,7 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
             com.paul.sprintsync.core.theme.SprintSyncTheme {
                 SprintSyncApp(
                     uiState = uiState.value,
+                    debugTelemetryState = debugTelemetryState,
                     previewViewFactory = previewViewFactory,
                     onRequestPermissions = {
                         if (uiState.value.setupBusy) return@SprintSyncApp
@@ -499,9 +501,14 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
                         motionDetectionController.updateRoiCenter(value)
                         syncControllerSummaries()
                     },
-                    onUpdateRoiWidth = { value ->
+                    onUpdateRoiCenterY = { value ->
                         if (isControllerOnlyHost) return@SprintSyncApp
-                        motionDetectionController.updateRoiWidth(value)
+                        motionDetectionController.updateRoiCenterY(value)
+                        syncControllerSummaries()
+                    },
+                    onUpdateRoiHeight = { value ->
+                        if (isControllerOnlyHost) return@SprintSyncApp
+                        motionDetectionController.updateRoiHeight(value)
                         syncControllerSummaries()
                     },
                     onUpdateCooldown = { value ->
@@ -1076,9 +1083,9 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
         updateUiState {
             copy(
                 networkSummary = "$role mode, $connectedCount connected",
-                lastConnectionEvent = type,
             )
         }
+        updateDebugTelemetryState { copy(lastConnectionEvent = type) }
         syncControllerSummaries()
         appendEvent("connection:$type")
         connectionFailureGuidanceMessage(
@@ -1098,7 +1105,7 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
                 is SensorNativeEvent.Error -> "native_error"
             }
             if (debugEnabled || event !is SensorNativeEvent.FrameStats) {
-                updateUiState { copy(lastSensorEvent = type) }
+                updateDebugTelemetryState { copy(lastSensorEvent = type) }
             }
             return
         }
@@ -1192,7 +1199,7 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
             val controllerEvent = raceSessionController.uiState.value.lastEvent ?: "-"
             val motionMonitoring = motionDetectionController.uiState.value.monitoring
             logRuntimeDiagnostic("sensor:$type controllerEvent=$controllerEvent motionMonitoring=$motionMonitoring")
-            updateUiState { copy(lastSensorEvent = type) }
+            updateDebugTelemetryState { copy(lastSensorEvent = type) }
             appendEvent("sensor:$type")
         }
 
@@ -1534,19 +1541,10 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
                 elapsedDisplay = elapsedDisplay,
                 threshold = motionState.config.threshold,
                 roiCenterX = motionState.config.roiCenterX,
-                roiWidth = motionState.config.roiWidth,
+                roiCenterY = motionState.config.roiCenterY,
+                roiHeight = motionState.config.roiHeight,
                 cooldownMs = motionState.config.cooldownMs,
                 processEveryNFrames = motionState.config.processEveryNFrames,
-                observedFps = if (debugActive) motionState.observedFps else this.observedFps,
-                cameraFpsModeLabel = if (debugActive) cameraModeLabel else this.cameraFpsModeLabel,
-                targetFpsUpper = if (debugActive) motionState.targetFpsUpper else this.targetFpsUpper,
-                rawScore = if (debugActive) motionState.rawScore else this.rawScore,
-                baseline = if (debugActive) motionState.baseline else this.baseline,
-                effectiveScore = if (debugActive) motionState.effectiveScore else this.effectiveScore,
-                frameSensorNanos = if (debugActive) motionState.lastFrameSensorNanos else this.frameSensorNanos,
-                streamFrameCount = if (debugActive) motionState.streamFrameCount else this.streamFrameCount,
-                processedFrameCount = if (debugActive) motionState.processedFrameCount else this.processedFrameCount,
-                triggerHistory = if (debugActive) triggerHistory else this.triggerHistory,
                 splitHistory = splitHistory,
                 runDetailsCheckpointRoles = runDetailsCheckpointRoles,
                 runDetailsDistancesByRole = runDetailsDistances,
@@ -1564,6 +1562,20 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
                 anchorState = raceState.anchorState,
                 clockLockReasonLabel = clockLockReasonLabel,
                 saveableRunDurationNanos = saveableRunDurationNanos,
+            )
+        }
+        updateDebugTelemetryState {
+            copy(
+                observedFps = if (debugActive) motionState.observedFps else this.observedFps,
+                cameraFpsModeLabel = if (debugActive) cameraModeLabel else this.cameraFpsModeLabel,
+                targetFpsUpper = if (debugActive) motionState.targetFpsUpper else this.targetFpsUpper,
+                rawScore = if (debugActive) motionState.rawScore else this.rawScore,
+                baseline = if (debugActive) motionState.baseline else this.baseline,
+                effectiveScore = if (debugActive) motionState.effectiveScore else this.effectiveScore,
+                frameSensorNanos = if (debugActive) motionState.lastFrameSensorNanos else this.frameSensorNanos,
+                streamFrameCount = if (debugActive) motionState.streamFrameCount else this.streamFrameCount,
+                processedFrameCount = if (debugActive) motionState.processedFrameCount else this.processedFrameCount,
+                triggerHistory = if (debugActive) triggerHistory else this.triggerHistory,
             )
         }
     }
@@ -1638,9 +1650,9 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
     }
 
     private fun appendEvent(message: String) {
-        val previous = uiState.value.recentEvents
+        val previous = debugTelemetryState.value.recentEvents
         val updated = (listOf(message) + previous).take(10)
-        updateUiState { copy(recentEvents = updated) }
+        updateDebugTelemetryState { copy(recentEvents = updated) }
     }
 
     private fun deniedPermissions(scope: PermissionScope): List<String> {
@@ -1744,6 +1756,12 @@ class MainActivity : ComponentActivity(), ActivityCompat.OnRequestPermissionsRes
 
     private fun updateUiState(update: SprintSyncUiState.() -> SprintSyncUiState) {
         uiState.value = uiState.value.update()
+    }
+
+    private fun updateDebugTelemetryState(
+        update: SprintSyncDebugTelemetryState.() -> SprintSyncDebugTelemetryState,
+    ) {
+        debugTelemetryState.value = debugTelemetryState.value.update()
     }
 
     private fun startTimerRefreshLoop() {

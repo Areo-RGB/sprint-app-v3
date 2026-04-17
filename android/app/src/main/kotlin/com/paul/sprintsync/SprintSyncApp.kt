@@ -37,6 +37,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,23 +109,11 @@ data class SprintSyncUiState(
     val elapsedDisplay: String = "00.00",
     val threshold: Double = 0.006,
     val roiCenterX: Double = 0.5,
-    val roiWidth: Double = 0.03,
+    val roiCenterY: Double = 0.5,
+    val roiHeight: Double = 0.03,
     val cooldownMs: Int = 900,
     val processEveryNFrames: Int = 2,
-    val observedFps: Double? = null,
-    val cameraFpsModeLabel: String = "INIT",
-    val targetFpsUpper: Int? = null,
-    val rawScore: Double? = null,
-    val baseline: Double? = null,
-    val effectiveScore: Double? = null,
-    val frameSensorNanos: Long? = null,
-    val streamFrameCount: Long = 0,
-    val processedFrameCount: Long = 0,
-    val triggerHistory: List<String> = emptyList(),
     val splitHistory: List<String> = emptyList(),
-    val lastConnectionEvent: String? = null,
-    val lastSensorEvent: String? = null,
-    val recentEvents: List<String> = emptyList(),
     val operatingMode: SessionOperatingMode = SessionOperatingMode.NETWORK_RACE,
     val displayLapRows: List<DisplayLapRow> = emptyList(),
     val displayConnectedHostName: String? = null,
@@ -151,6 +140,22 @@ data class SprintSyncUiState(
     val showSavedRunResultDetailsDialog: Boolean = false,
     val selectedSavedRunResult: SavedRunResult? = null,
     val updateDownloading: Boolean = false,
+)
+
+data class SprintSyncDebugTelemetryState(
+    val observedFps: Double? = null,
+    val cameraFpsModeLabel: String = "INIT",
+    val targetFpsUpper: Int? = null,
+    val rawScore: Double? = null,
+    val baseline: Double? = null,
+    val effectiveScore: Double? = null,
+    val frameSensorNanos: Long? = null,
+    val streamFrameCount: Long = 0,
+    val processedFrameCount: Long = 0,
+    val triggerHistory: List<String> = emptyList(),
+    val lastConnectionEvent: String? = null,
+    val lastSensorEvent: String? = null,
+    val recentEvents: List<String> = emptyList(),
 )
 
 data class DisplayLapRow(
@@ -183,6 +188,7 @@ data class RunDetailsCheckpointResult(
 @Composable
 fun SprintSyncApp(
     uiState: SprintSyncUiState,
+    debugTelemetryState: State<SprintSyncDebugTelemetryState>,
     previewViewFactory: SensorNativePreviewViewFactory,
     onRequestPermissions: () -> Unit,
     onStartHosting: () -> Unit,
@@ -205,7 +211,8 @@ fun SprintSyncApp(
     onUpdateRemoteSensitivity: (String, Int) -> Unit,
     onRequestRemoteResync: (String) -> Unit,
     onUpdateRoiCenter: (Double) -> Unit,
-    onUpdateRoiWidth: (Double) -> Unit,
+    onUpdateRoiCenterY: (Double) -> Unit,
+    onUpdateRoiHeight: (Double) -> Unit,
     onUpdateCooldown: (Int) -> Unit,
     onStopHosting: () -> Unit,
     onOpenSaveResultDialog: () -> Unit,
@@ -227,6 +234,7 @@ fun SprintSyncApp(
     onConfirmRunDetailsSave: () -> Unit,
 ) {
     var showPreview by rememberSaveable { mutableStateOf(true) }
+    val debugTelemetry by debugTelemetryState
     val showDebugInfo = uiState.debugEnabled
     val forceControllerOnlyHostUi = BuildConfig.DEVICE_PROFILE == "host_xiaomi"
     val effectiveControllerOnlyHost = uiState.isControllerOnlyHost || forceControllerOnlyHostUi
@@ -307,7 +315,7 @@ fun SprintSyncApp(
 
             if (showDebugInfo && uiState.stage != SessionStage.MONITORING && !isDisplayHostMode) {
                 item {
-                    StatusCard(uiState)
+                    StatusCard(uiState = uiState, debugTelemetry = debugTelemetry)
                 }
             }
 
@@ -396,6 +404,7 @@ fun SprintSyncApp(
                         item {
                             RunMetricsCard(
                                 uiState = uiState,
+                                debugTelemetry = debugTelemetry,
                                 isHost = uiState.isHost,
                                 showDebugInfo = showDebugInfo,
                                 onResetRun = onResetRun,
@@ -439,6 +448,8 @@ fun SprintSyncApp(
                                     },
                                     previewViewFactory = previewViewFactory,
                                     roiCenterX = uiState.roiCenterX,
+                                    roiCenterY = uiState.roiCenterY,
+                                    roiHeight = uiState.roiHeight,
                                     operatingMode = uiState.operatingMode,
                                     discoveredDisplayHosts = uiState.discoveredEndpoints,
                                     displayConnectedHostName = uiState.displayConnectedHostName,
@@ -473,10 +484,12 @@ fun SprintSyncApp(
                             item {
                                 AdvancedDetectionCard(
                                     uiState = uiState,
+                                    debugTelemetry = debugTelemetry,
                                     showDebugInfo = showDebugInfo,
                                     onUpdateThreshold = onUpdateThreshold,
                                     onUpdateRoiCenter = onUpdateRoiCenter,
-                                    onUpdateRoiWidth = onUpdateRoiWidth,
+                                    onUpdateRoiCenterY = onUpdateRoiCenterY,
+                                    onUpdateRoiHeight = onUpdateRoiHeight,
                                     onUpdateCooldown = onUpdateCooldown,
                                 )
                             }
@@ -491,9 +504,9 @@ fun SprintSyncApp(
                 }
             }
 
-            if (showDebugInfo && uiState.recentEvents.isNotEmpty()) {
+            if (showDebugInfo && debugTelemetry.recentEvents.isNotEmpty()) {
                 item {
-                    EventsCard(uiState.recentEvents)
+                    EventsCard(debugTelemetry.recentEvents)
                 }
             }
             }
@@ -581,7 +594,7 @@ fun SprintSyncApp(
 }
 
 @Composable
-private fun StatusCard(uiState: SprintSyncUiState) {
+private fun StatusCard(uiState: SprintSyncUiState, debugTelemetry: SprintSyncDebugTelemetryState) {
     SprintSyncCard {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             SectionHeader("Session Status")
@@ -591,8 +604,8 @@ private fun StatusCard(uiState: SprintSyncUiState) {
                 MetricDisplay(label = "Motion", value = uiState.monitoringSummary)
             }
             MetricDisplay(label = "Clock", value = uiState.clockSummary)
-            uiState.lastConnectionEvent?.let { Text("Last Connection: $it") }
-            uiState.lastSensorEvent?.let { Text("Last Sensor: $it") }
+            debugTelemetry.lastConnectionEvent?.let { Text("Last Connection: $it") }
+            debugTelemetry.lastSensorEvent?.let { Text("Last Sensor: $it") }
             if (!uiState.permissionGranted && uiState.deniedPermissions.isNotEmpty()) {
                 Text(
                     "Missing permissions: ${uiState.deniedPermissions.joinToString()}",
@@ -916,6 +929,8 @@ private fun MonitoringSummaryCard(
     onUpdateSensitivity: (Float) -> Unit,
     previewViewFactory: SensorNativePreviewViewFactory,
     roiCenterX: Double,
+    roiCenterY: Double,
+    roiHeight: Double,
     operatingMode: SessionOperatingMode,
     discoveredDisplayHosts: Map<String, String>,
     displayConnectedHostName: String?,
@@ -1046,6 +1061,8 @@ private fun MonitoringSummaryCard(
                             PreviewSurface(
                                 previewViewFactory = previewViewFactory,
                                 roiCenterX = roiCenterX,
+                                roiCenterY = roiCenterY,
+                                roiHeight = roiHeight,
                             )
                         }
                     }
@@ -1120,6 +1137,8 @@ private fun MonitoringSummaryCard(
                             PreviewSurface(
                                 previewViewFactory = previewViewFactory,
                                 roiCenterX = roiCenterX,
+                                roiCenterY = roiCenterY,
+                                roiHeight = roiHeight,
                             )
                         }
                     }
@@ -1355,7 +1374,12 @@ private fun ClockWarningCard(text: String) {
 }
 
 @Composable
-private fun PreviewSurface(previewViewFactory: SensorNativePreviewViewFactory, roiCenterX: Double) {
+private fun PreviewSurface(
+    previewViewFactory: SensorNativePreviewViewFactory,
+    roiCenterX: Double,
+    roiCenterY: Double,
+    roiHeight: Double,
+) {
     Box(
         modifier = Modifier
             .width(180.dp)
@@ -1374,13 +1398,17 @@ private fun PreviewSurface(previewViewFactory: SensorNativePreviewViewFactory, r
             },
         )
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val normalized = roiCenterX.coerceIn(0.0, 1.0).toFloat()
-            val x = size.width * normalized
-            drawLine(
+            val centerX = size.width * roiCenterX.coerceIn(0.0, 1.0).toFloat()
+            val centerY = size.height * roiCenterY.coerceIn(0.0, 1.0).toFloat()
+            val side = (roiHeight.coerceIn(0.0, 1.0).toFloat() * minOf(size.width, size.height))
+                .coerceAtLeast(1f)
+            val topLeftX = (centerX - (side / 2f)).coerceIn(0f, size.width - side)
+            val topLeftY = (centerY - (side / 2f)).coerceIn(0f, size.height - side)
+            drawRect(
                 color = Color(0xFF005A8D),
-                start = androidx.compose.ui.geometry.Offset(x, 0f),
-                end = androidx.compose.ui.geometry.Offset(x, size.height),
-                strokeWidth = 3.dp.toPx(),
+                topLeft = androidx.compose.ui.geometry.Offset(topLeftX, topLeftY),
+                size = androidx.compose.ui.geometry.Size(side, side),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx()),
             )
         }
     }
@@ -1389,10 +1417,12 @@ private fun PreviewSurface(previewViewFactory: SensorNativePreviewViewFactory, r
 @Composable
 private fun AdvancedDetectionCard(
     uiState: SprintSyncUiState,
+    debugTelemetry: SprintSyncDebugTelemetryState,
     showDebugInfo: Boolean,
     onUpdateThreshold: (Double) -> Unit,
     onUpdateRoiCenter: (Double) -> Unit,
-    onUpdateRoiWidth: (Double) -> Unit,
+    onUpdateRoiCenterY: (Double) -> Unit,
+    onUpdateRoiHeight: (Double) -> Unit,
     onUpdateCooldown: (Int) -> Unit,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -1424,10 +1454,17 @@ private fun AdvancedDetectionCard(
                     valueRange = 0.20f..0.80f,
                 )
 
-                MetricDisplay(label = "ROI width", value = String.format("%.2f", uiState.roiWidth))
+                MetricDisplay(label = "ROI center Y", value = String.format("%.2f", uiState.roiCenterY))
                 Slider(
-                    value = uiState.roiWidth.toFloat(),
-                    onValueChange = { onUpdateRoiWidth(it.toDouble()) },
+                    value = uiState.roiCenterY.toFloat(),
+                    onValueChange = { onUpdateRoiCenterY(it.toDouble()) },
+                    valueRange = 0.20f..0.80f,
+                )
+
+                MetricDisplay(label = "ROI square size", value = String.format("%.2f", uiState.roiHeight))
+                Slider(
+                    value = uiState.roiHeight.toFloat(),
+                    onValueChange = { onUpdateRoiHeight(it.toDouble()) },
                     valueRange = 0.03f..0.40f,
                 )
 
@@ -1440,20 +1477,20 @@ private fun AdvancedDetectionCard(
 
                 Spacer(Modifier.height(4.dp))
                 SectionHeader("Live Stats")
-                Text("Raw score: ${uiState.rawScore?.let { String.format("%.4f", it) } ?: "-"}")
-                Text("Baseline: ${uiState.baseline?.let { String.format("%.4f", it) } ?: "-"}")
-                Text("Effective: ${uiState.effectiveScore?.let { String.format("%.4f", it) } ?: "-"}")
+                Text("Raw score: ${debugTelemetry.rawScore?.let { String.format("%.4f", it) } ?: "-"}")
+                Text("Baseline: ${debugTelemetry.baseline?.let { String.format("%.4f", it) } ?: "-"}")
+                Text("Effective: ${debugTelemetry.effectiveScore?.let { String.format("%.4f", it) } ?: "-"}")
                 if (showDebugInfo) {
-                    MetricDisplay(label = "Frame Sensor Nanos", value = "${uiState.frameSensorNanos ?: "-"}")
-                    Text("Frames: ${uiState.processedFrameCount}/${uiState.streamFrameCount}")
+                    MetricDisplay(label = "Frame Sensor Nanos", value = "${debugTelemetry.frameSensorNanos ?: "-"}")
+                    Text("Frames: ${debugTelemetry.processedFrameCount}/${debugTelemetry.streamFrameCount}")
                 }
 
                 Spacer(Modifier.height(4.dp))
                 SectionHeader("Recent Triggers")
-                if (uiState.triggerHistory.isEmpty()) {
+                if (debugTelemetry.triggerHistory.isEmpty()) {
                     Text("No trigger events yet.")
                 } else {
-                    uiState.triggerHistory.forEach { event ->
+                    debugTelemetry.triggerHistory.forEach { event ->
                         Text(event, style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -1465,14 +1502,15 @@ private fun AdvancedDetectionCard(
 @Composable
 private fun RunMetricsCard(
     uiState: SprintSyncUiState,
+    debugTelemetry: SprintSyncDebugTelemetryState,
     isHost: Boolean,
     showDebugInfo: Boolean,
     onResetRun: () -> Unit,
     onOpenSaveResultDialog: () -> Unit,
     onOpenRunDetailsOverlay: () -> Unit,
 ) {
-    val fpsLabel = uiState.observedFps?.let { String.format("%.1f", it) } ?: "--.-"
-    val targetSuffix = uiState.targetFpsUpper?.let { " · target $it" } ?: ""
+    val fpsLabel = debugTelemetry.observedFps?.let { String.format("%.1f", it) } ?: "--.-"
+    val targetSuffix = debugTelemetry.targetFpsUpper?.let { " · target $it" } ?: ""
     val showResetRunAction = shouldShowMonitoringTopResetRunButton(
         stage = uiState.stage,
         isHost = uiState.isHost,
@@ -1495,7 +1533,7 @@ private fun RunMetricsCard(
         ) {
             if (shouldShowCameraFpsInfo(showDebugInfo)) {
                 Text(
-                    "Camera: $fpsLabel fps · ${uiState.cameraFpsModeLabel}$targetSuffix",
+                    "Camera: $fpsLabel fps · ${debugTelemetry.cameraFpsModeLabel}$targetSuffix",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
